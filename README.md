@@ -13,18 +13,18 @@ top kernel has the following configuration and tflops (from results.txt)
 
 # Microbenchmark
 Benchmark information for a conv kernel in IREE with MISA kernel integrated. Note that this is a microbenchmark with only conv kernel in MLIR. Below are the IREE compile and run commands:
-For MISA kernel: 
+**MISA kernel:**
 ```
 iree-compile --iree-hal-target-backends=rocm --iree-hal-target-backends=rocm     --iree-rocm-target-chip=gfx940 --iree-rocm-bc-dir=/opt/rocm/amdgcn/bitcode/ --iree-preprocessing-transform-spec-filename=conv_spec_microkernel.mlir --iree-util-zero-fill-elided-attrs elided_conv.mlir -o conv_misa.vmfb
 ```
 
-For IREE kernel:
+**IREE kernel:**
 ```
 iree-compile --iree-hal-target-backends=rocm --iree-hal-target-backends=rocm     --iree-rocm-target-chip=gfx940 --iree-rocm-bc-dir=/opt/rocm/amdgcn/bitcode/ --iree-codegen-llvmgpu-use-vector-distribution=true --iree-llvmgpu-enable-prefetch --iree-util-zero-fill-elided-attrs elided_conv.mlir -o conv_iree.vmfb
 ```
 
 Inputs values are generated using `numpy.random.rand`, converted to `numpy.float16`, and fed as `.npy` files to `iree-run-module`.
-IREE kernel:
+**IREE kernel:**
 ```
 nmeganat@smc300x-pla-t25-12:~/MISA-benchmarking$ ./../iree/build_rocm/tools/iree-benchmark-module --device=rocm --module=conv_iree.vmfb --functi
 on=forward --input=@input1.npy --input=@input2.npy --benchmark_repitions=50
@@ -45,7 +45,7 @@ Benchmark                                  Time             CPU   Iterations Use
 BM_forward/process_time/real_time       1.13 ms         2.01 ms          627 items_per_second=885.276/s
 ```
 
-MISA kernel:
+**MISA kernel:**
 ```
 nmeganat@smc300x-pla-t25-12:~/MISA-benchmarking$ ./../iree/build_rocm/tools/iree-benchmark-module --device=rocm --module=conv_misa.vmfb --functi
 on=forward --input=@input1.npy --input=@input2.npy --benchmark_repitions=50
@@ -72,7 +72,7 @@ There is a slight deviation in the result values which may be due to typecast bu
 
 UNet is benchmarked using the following compile and run commands (reference: https://github.com/nod-ai/sdxl-scripts). Note that it uses a different spec than the microkernel because of the different matcher:
 
-With MISA kernel
+**MISA kernel:**
 ```
 iree-compile --iree-hal-target-backends=rocm --iree-rocm-target-chip=gfx940 \
 --iree-rocm-bc-dir=$PWD/bitcode-2024-03-07 --iree-global-opt-propagate-transposes=true --iree-opt-outer-dim-concat=true \
@@ -112,7 +112,7 @@ BM_main/process_time/real_time_stddev      0.759 ms         1.30 ms            3
 BM_main/process_time/real_time_cv           0.82 %          0.71 %             3 items_per_second=0.82%
 ```
 
-Without MISA kernel - same compile command as MISA except not using the `conv_spec_unet.mlir`.
+**Without MISA kernel** - same compile command as MISA except not using the `conv_spec_unet.mlir`.
 ```
 nmeganat@smc300x-pla-t25-12:~/sdxl-scripts$ TRACY_NO_EXIT=1 ./../iree/build_rocm/tools/iree-benchmark-module --device=rocm --device_allocator=caching --module=./tmp/unet.vmfb --parameters=model=./scheduled_unet_fp16.irpa --function=main --input=1x4x128x128xf16 --input=1xi64 --input=2x64x2048xf16 --input=2x1280xf16 --input=2x6xf16 --input=1xf16  --benchmark_repetitions=3
 2024-05-08T12:27:35-05:00
