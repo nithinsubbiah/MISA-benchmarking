@@ -66,3 +66,75 @@ BM_forward/process_time/real_time       1.37 ms         1.85 ms          381 ite
 ```
 
 There is a slight deviation in the result values which may be due to typecast but overall values are close enough. Artifacts for this experiment can be found on this repo.
+
+#UNet benchmarking
+
+UNet is benchmarked using the following compile and run commands (reference: https://github.com/nod-ai/sdxl-scripts). Note that it uses a different spec than the microkernel because of the different matcher:
+
+With MISA kernel
+```
+iree-compile --iree-hal-target-backends=rocm --iree-rocm-target-chip=gfx940 \
+--iree-rocm-bc-dir=$PWD/bitcode-2024-03-07 --iree-global-opt-propagate-transposes=true --iree-opt-outer-dim-concat=true \
+--iree-opt-data-tiling=false --iree-opt-const-eval=false --iree-codegen-llvmgpu-use-vector-distribution --iree-vm-target-truncate-unsupported-floats \
+--iree-llvmgpu-enable-prefetch --iree-codegen-gpu-native-math-precision=true --iree-rocm-waves-per-eu=2 \
+--iree-flow-enable-aggressive-fusion --iree-global-opt-enable-fuse-horizontal-contractions=true \
+--iree-opt-aggressively-propagate-transposes=true --iree-execution-model=async-external \
+--iree-hal-dump-executable-configurations-to=configurations/unet --iree-hal-dump-executable-sources-to=sources/unet \
+--iree-hal-dump-executable-binaries-to=binaries/unet --iree-hal-dump-executable-benchmarks-to=benchmarks/unet \
+--iree-preprocessing-pass-pipeline="builtin.module(iree-preprocessing-transpose-convolution-pipeline, util.func(iree-preprocessing-pad-to-intrinsics))" \
+--iree-codegen-transform-dialect-library=./specs/attention_and_matmul_spec.mlir \
+--iree-preprocessing-transform-spec-filename=./../MISA-benchmarking/conv_spec_unet.mlir ./base_ir/stable_diffusion_xl_base_1_0_64_1024x1024_fp16_unet.mlir -
+o ./tmp/unet_spec.vmfb
+```
+```
+nmeganat@smc300x-pla-t25-12:~/sdxl-scripts$ TRACY_NO_EXIT=1 ./../iree/build_rocm/tools/iree-benchmark-module --device=rocm --device_allocator=caching --module=./tmp/unet_spec.vmfb --parameters=model=./scheduled_unet_fp16.irpa --function=main --input=1x4x128x128xf16 --input=1xi64 --input=2x64x2048xf16 --input=2x1280xf16 --input=2x6xf16 --input=1xf16  --benchmark_repetitions=3
+2024-05-07T21:51:13-05:00
+Running ./../iree/build_rocm/tools/iree-benchmark-module
+Run on (128 X 3799.07 MHz CPU s)
+CPU Caches:
+  L1 Data 32 KiB (x64)
+  L1 Instruction 32 KiB (x64)
+  L2 Unified 1024 KiB (x64)
+  L3 Unified 32768 KiB (x16)
+Load Average: 1.73, 0.70, 3.52
+***WARNING*** CPU scaling is enabled, the benchmark real time measurements may be noisy and will incur extra overhead.
+***WARNING*** Library was built as DEBUG. Timings may be affected.
+------------------------------------------------------------------------------------------------
+Benchmark                                      Time             CPU   Iterations UserCounters...
+------------------------------------------------------------------------------------------------
+BM_main/process_time/real_time              84.3 ms          166 ms            8 items_per_second=11.8633/s
+BM_main/process_time/real_time              84.6 ms          168 ms            8 items_per_second=11.815/s
+BM_main/process_time/real_time              84.5 ms          167 ms            8 items_per_second=11.8311/s
+BM_main/process_time/real_time_mean         84.5 ms          167 ms            3 items_per_second=11.8364/s
+BM_main/process_time/real_time_median       84.5 ms          167 ms            3 items_per_second=11.8311/s
+BM_main/process_time/real_time_stddev      0.175 ms        0.915 ms            3 items_per_second=0.0245839/s
+BM_main/process_time/real_time_cv           0.21 %          0.55 %             3 items_per_second=0.21%
+```
+
+Without MISA kernel - same compile command as MISA except not using the `conv_spec_unet.mlir`.
+```
+nmeganat@smc300x-pla-t25-12:~/sdxl-scripts$ TRACY_NO_EXIT=1 ./../iree/build_rocm/tools/iree-benchmark-module --device=rocm --device_allocator=caching --module=./tmp/unet.vmfb --parameters=model=./scheduled_unet_fp16.irpa --function=main --input=1x4x128x128xf16 --input=1xi64 --input=2x64x2048xf16 --input=2x1280x
+f16 --input=2x6xf16 --input=1xf16  --benchmark_repetitions=3
+2024-05-07T21:56:51-05:00
+Running ./../iree/build_rocm/tools/iree-benchmark-module
+Run on (128 X 3799.07 MHz CPU s)
+CPU Caches:
+  L1 Data 32 KiB (x64)
+  L1 Instruction 32 KiB (x64)
+  L2 Unified 1024 KiB (x64)
+  L3 Unified 32768 KiB (x16)
+Load Average: 0.95, 0.90, 2.72
+***WARNING*** CPU scaling is enabled, the benchmark real time measurements may be noisy and will incur extra overhead.
+***WARNING*** Library was built as DEBUG. Timings may be affected.
+------------------------------------------------------------------------------------------------
+Benchmark                                      Time             CPU   Iterations UserCounters...
+------------------------------------------------------------------------------------------------
+BM_main/process_time/real_time              84.1 ms          166 ms            8 items_per_second=11.892/s
+BM_main/process_time/real_time              84.3 ms          167 ms            8 items_per_second=11.8568/s
+BM_main/process_time/real_time              84.2 ms          167 ms            8 items_per_second=11.8724/s
+BM_main/process_time/real_time_mean         84.2 ms          167 ms            3 items_per_second=11.8738/s
+BM_main/process_time/real_time_median       84.2 ms          167 ms            3 items_per_second=11.8724/s
+BM_main/process_time/real_time_stddev      0.125 ms        0.754 ms            3 items_per_second=0.0176346/s
+BM_main/process_time/real_time_cv           0.15 %          0.45 %             3 items_per_second=0.15%
+```
+NOTE: The divergence in results between the two is not insignificant, need to debug why the results vary.
