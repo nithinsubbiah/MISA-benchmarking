@@ -35,20 +35,20 @@ module attributes {transform.with_named_sequence} {
     %magic_1 = arith.constant 1 : i32
     %magic_2 = arith.constant 1 : i32
     %magic_3 = arith.constant 2576980378 : i32
-    %magic_4 = arith.constant 5 : i32
-    %magic_5 = arith.constant 10151360 : i32
-    %shift_pack_0 = arith.constant 168102405 : i32
-    %shift_pack_1 = arith.constant 32 : i32
+    %magic_4 = arith.constant 4 : i32
+    %magic_5 = arith.constant 23449584 : i32
+    %shift_pack_0 = arith.constant 134547972 : i32
+    %shift_pack_1 = arith.constant 16 : i32
     %ks = arith.constant 0 : i32
 
-    %5 = hal.dispatch.extern "igemm_fwd_gtcx3_nhwc_fp16_bx0_ex1_bt64x64x64_wt16x16x16_ws1x1_wr2x2_ta1x8x2x1_1x8x1x32_tb1x8x2x1_1x8x1x32"(%hi, %wi, %n,
+    %5 = hal.dispatch.extern "igemm_fwd_gtcx3_nhwc_fp16_bx0_ex1_bt128x128x32_wt32x32x8_ws1x1_wr2x2_ta1x8x2x1_1x4x1x64_tb1x8x2x1_1x4x1x64_gkgs"(%hi, %wi, %n,
         %k, %c, %ho, %wo, %stride_h, %stride_w, %dilation_h, %dilation_w, %pad_h, %pad_w, %y, %x, %group, 
         %magic_0, %magic_1, %magic_2, %magic_3, %magic_4, %magic_5, %shift_pack_0, %shift_pack_1, %ks,
         %arg0, %arg1) : (i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32,
         i32, i32, i32, i32, i32, i32, i32, i32, tensor<2x34x34x1280xf16>, tensor<3x3x1280x1280xf16>) -> tensor<2x32x32x1280xf16>
       count(%device: !hal.device) -> (index, index, index) {
         %c1_0 = arith.constant 1 : index
-        %c80_0 = arith.constant 640 : index
+        %c80_0 = arith.constant 160 : index
         hal.return %c80_0, %c1_0, %c1_0 : index, index, index
       }
       layout(#hal.pipeline.layout<push_constants = 25, sets = [
