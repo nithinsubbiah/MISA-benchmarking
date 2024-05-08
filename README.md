@@ -65,3 +65,4 @@ Benchmark                                  Time             CPU   Iterations Use
 BM_forward/process_time/real_time       1.37 ms         1.85 ms          381 items_per_second=728.367/s
 ```
 
+There is a slight deviation in the result values which may be due to typecast but overall values are close enough. Artifacts for this experiment can be found on this repo.
