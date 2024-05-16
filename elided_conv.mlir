@@ -22,7 +22,7 @@ module attributes {torch.debug_module_name = "Conv2d"} {
     %transposed_1 = linalg.transpose ins(%arg1 : tensor<1280x1280x3x3xf16>) outs(%5 : tensor<3x3x1280x1280xf16>) permutation = [2, 3, 1, 0] 
     %collapsed = tensor.collapse_shape %3 [[0], [1, 2], [3], [4]] : tensor<2x1x32x32x1280xf32> into tensor<2x32x32x1280xf32>
     %6 = linalg.conv_2d_nhwc_hwcf {dilations = dense<1> : vector<2xi64>, strides = dense<1> : vector<2xi64>} ins(%transposed, %transposed_1 : tensor<2x34x34x1280xf16>, tensor<3x3x1280x1280xf16>) outs(%collapsed : tensor<2x32x32x1280xf32>) -> tensor<2x32x32x1280xf32>
-    %expanded = tensor.expand_shape %6 [[0], [1, 2], [3], [4]] : tensor<2x32x32x1280xf32> into tensor<2x1x32x32x1280xf32>
+    %expanded = tensor.expand_shape %6 [[0], [1, 2], [3], [4]] output_shape [2,1,32,32,1280] : tensor<2x32x32x1280xf32> into tensor<2x1x32x32x1280xf32>
     %7 = tensor.empty() : tensor<2x1x32x32x1280xf16>
     %8 = linalg.generic {indexing_maps = [#map2, #map2], iterator_types = ["parallel", "parallel", "parallel", "parallel", "parallel"]} ins(%expanded : tensor<2x1x32x32x1280xf32>) outs(%7 : tensor<2x1x32x32x1280xf16>) {
     ^bb0(%in: f32, %out: f16):
